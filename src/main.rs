@@ -2,9 +2,12 @@
 
 use std::env;
 use std::fs;
+use std::os::windows::process::CommandExt;
 use std::path::PathBuf;
 use std::process::{self, Command};
 use windows::Win32::UI::WindowsAndMessaging::{MessageBoxW, MB_ICONINFORMATION, MB_OK};
+
+const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -31,16 +34,12 @@ fn main() {
     let file_stem = resolved_path.file_stem().unwrap_or_default();
     let out_dir = parent.join(file_stem);
 
-    if out_dir.exists() {
-        show_message_box(
-            &format!("Folder already exists: {}", out_dir.display()),
-            "Unzipper"
-        );
-    } else {
+    if !out_dir.exists() {
         let out_arg = format!("-o{}", out_dir.display());
         
         match Command::new("7z")
             .args(&["x", &resolved_path.to_string_lossy(), &out_arg, "-y"])
+            .creation_flags(CREATE_NO_WINDOW)
             .output() 
         {
             Ok(output) if output.status.success() => {
